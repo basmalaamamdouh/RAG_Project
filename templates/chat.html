@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuralLens — AI/ML Visual Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,300&display=swap" rel="stylesheet">
+<!-- Load Plotly with a fallback and ensure it's available globally -->
+<script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+<style>
+/* ── Reset & tokens ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0d0e12;
+  --surface:   #14161d;
+  --surface2:  #1c1f2b;
+  --surface3:  #242838;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.13);
+  --text:      #e8eaf2;
+  --muted:     #7a7f9a;
+  --accent:    #6c7ff2;
+  --accent2:   #a78bfa;
+  --green:     #34d399;
+  --amber:     #fbbf24;
+  --rose:      #fb7185;
+  --font:      'DM Sans', sans-serif;
+  --mono:      'DM Mono', monospace;
+  --serif:     'Fraunces', serif;
+  --radius:    14px;
+  --radius-sm: 8px;
+  --sidebar:   260px;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+}
+
+/* ── Sidebar ────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.logo {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.logo-icon {
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.logo-name {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  font-weight: 300;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.logo-sub {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Mode selector */
+.mode-panel {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mode-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.mode-buttons {
+  display: flex;
+  gap: 4px;
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 6px 4px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.mode-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Nav sections */
+.nav-section {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface3) transparent;
+}
+
+.nav-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding: 8px 16px 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.15s;
+  font-size: 13px;
+  color: var(--muted);
+  border-left: 2px solid transparent;
+}
+
+.nav-item:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.nav-item.active {
+  background: var(--surface2);
+  color: var(--text);
+  border-left-color: var(--accent);
+}
+
+.nav-item-icon { font-size: 14px; flex-shrink: 0; }
+
+/* Sidebar footer */
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+}
+
+.footer-btn {
+  flex: 1;
+  padding: 7px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.footer-btn:hover {
+  background: var(--surface3);
+  color: var(--text);
+}
+
+/* ── Main area ──────────────────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Home / concept grid ────────────────────────────────── */
+#home-view {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface3) transparent;
+}
+
+.home-hero {
+  max-width: 640px;
+  margin: 0 auto 40px;
+  text-align: center;
+}
+
+.home-hero h1 {
+  font-family: var(--serif);
+  font-size: 2.6rem;
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  margin-bottom: 12px;
+}
+
+.home-hero h1 em {
+  font-style: italic;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.home-hero p {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Search bar */
+.search-bar {
+  max-width: 540px;
+  margin: 0 auto 40px;
+  position: relative;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 13px 48px 13px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 100px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-bar input:focus {
+  border-color: var(--accent);
+}
+
+.search-bar input::placeholder { color: var(--muted); }
+
+.search-bar button {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  background: var(--accent);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.search-bar button:hover { background: var(--accent2); }
+
+/* Category + cards */
+.category-section { margin-bottom: 36px; }
+
+.category-heading {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.category-heading::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.concept-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.concept-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--accent) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.concept-card:hover {
+  border-color: var(--border2);
+  transform: translateY(-2px);
+}
+
+.concept-card:hover::before { opacity: 0.06; }
+
+.card-icon { font-size: 24px; }
+
+.card-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.card-badge {
+  font-size: 10px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Chat view ──────────────────────────────────────────── */
+#chat-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.chat-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.chat-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 6px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.action-btn:hover { background: var(--surface3); color: var(--text); }
+.action-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.action-btn.primary:hover { background: var(--accent2); border-color: var(--accent2); }
+
+/* Split panel: messages + viz */
+.chat-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.messages-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface3) transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.viz-panel {
+  width: 420px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.viz-panel-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.viz-panel-title { color: var(--text); font-weight: 500; font-size: 13px; }
+
+.viz-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface3) transparent;
+}
+
+.viz-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  color: var(--muted);
+  text-align: center;
+  padding: 24px;
+}
+
+.viz-empty-icon { font-size: 40px; opacity: 0.4; }
+.viz-empty-text { font-size: 13px; line-height: 1.5; }
+
+/* Messages */
+.msg {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: fadeUp 0.25s ease;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.msg-user { align-items: flex-end; }
+
+.msg-bubble {
+  max-width: 88%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.msg-user .msg-bubble {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.msg-assistant .msg-bubble {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+}
+
+.msg-bubble strong { color: var(--accent2); font-weight: 600; }
+.msg-bubble em     { color: var(--green); }
+
+.msg-meta {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 0 4px;
+}
+
+/* Sources pill */
+.sources-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.source-pill {
+  font-size: 11px;
+  padding: 3px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  color: var(--muted);
+}
+
+/* Code toggle */
+.code-toggle {
+  margin-top: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.code-toggle summary {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.code-toggle summary:hover { color: var(--text); }
+
+.code-toggle pre {
+  padding: 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--green);
+  overflow-x: auto;
+  border-top: 1px solid var(--border);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+/* Typing indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  border-bottom-left-radius: 4px;
+  width: fit-content;
+}
+
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--muted);
+  border-radius: 50%;
+  animation: bounce 1.2s infinite;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%            { transform: translateY(-6px); opacity: 1; }
+}
+
+.status-badge {
+  font-size: 11px;
+  color: var(--accent);
+  margin-left: 4px;
+}
+
+/* ── Input area ─────────────────────────────────────────── */
+.input-area {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.input-row textarea {
+  flex: 1;
+  padding: 12px 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  resize: none;
+  min-height: 48px;
+  max-height: 120px;
+  outline: none;
+  transition: border-color 0.2s;
+  line-height: 1.5;
+}
+
+.input-row textarea::placeholder { color: var(--muted); }
+.input-row textarea:focus { border-color: var(--accent); }
+
+.send-btn {
+  width: 44px;
+  height: 44px;
+  background: var(--accent);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.send-btn:hover   { background: var(--accent2); transform: scale(1.04); }
+.send-btn:disabled{ opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.input-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ── Quiz overlay ───────────────────────────────────────── */
+.quiz-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.quiz-modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 28px;
+}
+
+.quiz-modal h2 {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 1.5rem;
+  margin-bottom: 6px;
+}
+
+.quiz-modal .quiz-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.q-block { margin-bottom: 24px; }
+
+.q-text {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.q-options { display: flex; flex-direction: column; gap: 8px; }
+
+.q-opt {
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.q-opt:hover  { border-color: var(--accent); color: var(--accent); }
+.q-opt.correct { border-color: var(--green); background: rgba(52,211,153,0.08); color: var(--green); }
+.q-opt.wrong   { border-color: var(--rose);  background: rgba(251,113,133,0.08); color: var(--rose); }
+
+.q-explanation {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  display: none;
+}
+
+.quiz-score {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--surface2);
+  border-radius: var(--radius);
+  text-align: center;
+  display: none;
+}
+
+.score-big { font-size: 2.5rem; font-weight: 600; color: var(--accent); }
+.score-msg { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+.quiz-footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+/* ── Toast ──────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--text);
+  z-index: 200;
+  animation: slideIn 0.25s ease;
+  max-width: 300px;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Scrollbar global ───────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 10px; }
+
+/* ── Responsive: hide viz panel on small screens ────────── */
+@media (max-width: 900px) {
+  .viz-panel { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ──────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">
+      <div class="logo-icon">🧠</div>
+      <span class="logo-name">NeuralLens</span>
+    </div>
+    <div class="logo-sub">AI / ML Visual Tutor</div>
+  </div>
+
+  <div class="mode-panel">
+    <div class="mode-label">Explanation level</div>
+    <div class="mode-buttons">
+      <button class="mode-btn active" data-mode="beginner"     onclick="setMode(this)">Beginner</button>
+      <button class="mode-btn"        data-mode="intermediate" onclick="setMode(this)">Mid</button>
+      <button class="mode-btn"        data-mode="expert"       onclick="setMode(this)">Expert</button>
+    </div>
+  </div>
+
+  <nav class="nav-section" id="sidebar-nav">
+    <div class="nav-label">Quick access</div>
+    <div class="nav-item active" onclick="showHome()">
+      <span class="nav-item-icon">🏠</span> Concept Explorer
+    </div>
+    <div class="nav-item" onclick="showChat()">
+      <span class="nav-item-icon">💬</span> Free Chat
+    </div>
+    <div class="nav-label" style="margin-top:8px">Recent</div>
+    <div id="history-nav"></div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="footer-btn" onclick="clearHistory()">Clear history</button>
+    <button class="footer-btn" onclick="clearCache()">Clear cache</button>
+  </div>
+</aside>
+
+<!-- ── Home view ────────────────────────────────────────── -->
+<div class="main" id="home-view">
+  <div id="home-scroll" style="flex:1;overflow-y:auto;padding:32px;scrollbar-width:thin;scrollbar-color:var(--surface3) transparent;">
+    <div class="home-hero">
+      <h1>Learn ML with<br><em>visual intuition</em></h1>
+      <p>Click any concept below or type your own question. Every answer comes with an interactive visualization.</p>
+    </div>
+
+    <div class="search-bar">
+      <input id="home-search" type="text" placeholder="Ask anything about ML… e.g. how does attention work?" 
+             onkeydown="if(event.key==='Enter') homeSearch()">
+      <button onclick="homeSearch()">↑</button>
+    </div>
+
+    <div id="concept-grid"></div>
+  </div>
+</div>
+
+<!-- ── Chat view ────────────────────────────────────────── -->
+<div class="main" id="chat-view" style="display:none;">
+
+  <div class="chat-header">
+    <span class="chat-title" id="chat-topic">Chat</span>
+    <div class="chat-actions">
+      <button class="action-btn" onclick="openQuiz()">📝 Quiz me</button>
+      <button class="action-btn" onclick="showHome()">← Back</button>
+      <button class="action-btn" onclick="newChat()">New chat</button>
+    </div>
+  </div>
+
+  <div class="chat-body">
+    <!-- Messages -->
+    <div class="messages-panel" id="messages"></div>
+
+    <!-- Viz panel -->
+    <div class="viz-panel">
+      <div class="viz-panel-header">
+        <span class="viz-panel-title">Visualization</span>
+        <button class="action-btn" id="viz-code-btn" style="display:none;" onclick="toggleVizCode()">View code</button>
+      </div>
+      <div class="viz-panel-body" id="viz-panel-body">
+        <div class="viz-empty">
+          <div class="viz-empty-icon">📊</div>
+          <div class="viz-empty-text">Visualizations will appear here when you ask about an ML concept</div>
+        </div>
+      </div>
+      <!-- Hidden code store -->
+      <div id="last-viz-code" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <textarea id="queryInput" placeholder="Ask a follow-up or ask about another concept…" rows="1"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+                oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
+    </div>
+    <div class="input-hint">Enter to send · Shift+Enter for new line · Include "visualize" to get a chart</div>
+  </div>
+</div>
+
+<!-- ── Quiz overlay ──────────────────────────────────────── -->
+<div class="quiz-overlay" id="quiz-overlay" style="display:none;">
+  <div class="quiz-modal">
+    <h2>Quick Quiz</h2>
+    <div class="quiz-sub" id="quiz-sub">Testing your knowledge on the current topic</div>
+    <div id="quiz-loading" style="text-align:center;padding:40px;color:var(--muted);">Generating questions…</div>
+    <div id="quiz-body" style="display:none;"></div>
+    <div class="quiz-score" id="quiz-score">
+      <div class="score-big" id="score-num"></div>
+      <div class="score-msg" id="score-msg"></div>
+    </div>
+    <div class="quiz-footer">
+      <button class="action-btn" onclick="closeQuiz()">Close</button>
+      <button class="action-btn primary" id="quiz-submit" onclick="submitQuiz()" style="display:none;">Submit answers</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────
+let currentMode  = 'beginner';
+let currentTopic = '';
+let isStreaming  = false;
+let concepts     = [];
+let quizData     = null;
+let quizAnswers  = {};
+let vizCodeShown = false;
+
+// Wait for Plotly to load
+function waitForPlotly(callback) {
+    if (typeof Plotly !== 'undefined') {
+        callback();
+    } else {
+        console.log('Waiting for Plotly to load...');
+        setTimeout(function() { waitForPlotly(callback); }, 100);
+    }
+}
+
+// ── Init ──────────────────────────────────────────────────
+(async () => {
+  await loadConcepts();
+  await loadHistory();
+  waitForPlotly(function() {
+      console.log('Plotly loaded successfully');
+  });
+})();
+
+async function loadConcepts() {
+  try {
+    const res  = await fetch('/api/concepts');
+    const data = await res.json();
+    concepts = data.concepts;
+    renderConceptGrid(data.concepts, data.categories);
+  } catch(e) { console.error(e); }
+}
+
+function renderConceptGrid(items, categories) {
+  const grid = document.getElementById('concept-grid');
+  const groups = {};
+  items.forEach(c => {
+    if (!groups[c.category]) groups[c.category] = [];
+    groups[c.category].push(c);
+  });
+
+  grid.innerHTML = Object.entries(groups).map(([cat, cards]) => `
+    <div class="category-section">
+      <div class="category-heading">${categories[cat] || cat}</div>
+      <div class="cards-grid">
+        ${cards.map(c => `
+          <div class="concept-card" onclick="askConcept('${c.query.replace(/'/g, "\\'")}','${c.title.replace(/'/g, "\\'")}')">
+            <div class="card-icon">${c.icon}</div>
+            <div class="card-title">${c.title}</div>
+            <div class="card-badge">${categories[cat] || cat}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Navigation ────────────────────────────────────────────
+function showHome() {
+  document.getElementById('home-view').style.display = '';
+  document.getElementById('chat-view').style.display = 'none';
+  setActiveNav('home');
+}
+
+function showChat() {
+  document.getElementById('home-view').style.display = 'none';
+  document.getElementById('chat-view').style.display = '';
+  setActiveNav('chat');
+}
+
+function setActiveNav(which) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const items = document.querySelectorAll('.nav-item');
+  if (which === 'home') items[0].classList.add('active');
+  else if (which === 'chat') items[1].classList.add('active');
+}
+
+// ── Mode ──────────────────────────────────────────────────
+function setMode(btn) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentMode = btn.dataset.mode;
+}
+
+// ── Ask from concept card or home search ──────────────────
+function askConcept(query, title) {
+  currentTopic = title;
+  document.getElementById('chat-topic').textContent = title;
+  showChat();
+  document.getElementById('messages').innerHTML = '';
+  resetVizPanel();
+  sendQuery(query);
+}
+
+function homeSearch() {
+  const q = document.getElementById('home-search').value.trim();
+  if (!q) return;
+  currentTopic = q;
+  document.getElementById('chat-topic').textContent = q;
+  showChat();
+  document.getElementById('messages').innerHTML = '';
+  resetVizPanel();
+  sendQuery(q);
+}
+
+function newChat() {
+  currentTopic = '';
+  document.getElementById('chat-topic').textContent = 'Chat';
+  document.getElementById('messages').innerHTML = '';
+  resetVizPanel();
+}
+
+// ── Main send ─────────────────────────────────────────────
+async function sendMessage() {
+  const ta = document.getElementById('queryInput');
+  const q  = ta.value.trim();
+  if (!q || isStreaming) return;
+  ta.value = '';
+  autoResize(ta);
+  sendQuery(q);
+}
+
+async function sendQuery(query) {
+  if (isStreaming) return;
+  isStreaming = true;
+  document.getElementById('sendBtn').disabled = true;
+
+  appendUserMsg(query);
+
+  const assistantId = 'msg_' + Date.now();
+  appendAssistantPlaceholder(assistantId);
+
+  try {
+    const res = await fetch('/api/chat/stream', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({query, mode: currentMode})
+    });
+
+    const reader   = res.body.getReader();
+    const decoder  = new TextDecoder();
+    let   buffer   = '';
+    let   fullText = '';
+
+    const bubble = document.getElementById(assistantId + '_bubble');
+    const status = document.getElementById(assistantId + '_status');
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, {stream: true});
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+
+        if (evt.type === 'status') {
+          if (status) status.textContent = evt.content;
+        } else if (evt.type === 'token') {
+          fullText += evt.content;
+          if (bubble) bubble.innerHTML = formatText(fullText);
+          if (status) status.textContent = '';
+          scrollMessages();
+        } else if (evt.type === 'visualization') {
+          console.log('Received visualization, length:', evt.content.length);
+          setVizPanel(evt.content);
+        } else if (evt.type === 'code') {
+          document.getElementById('last-viz-code').textContent = evt.content;
+          document.getElementById('viz-code-btn').style.display = '';
+        } else if (evt.type === 'error') {
+          if (bubble) bubble.innerHTML = `<span style="color:var(--rose)">Error: ${escHtml(evt.content)}</span>`;
+        } else if (evt.type === 'done') {
+          if (status) status.remove();
+        }
+      }
+    }
+  } catch(err) {
+    const bubble = document.getElementById(assistantId + '_bubble');
+    if (bubble) bubble.innerHTML = `<span style="color:var(--rose)">Network error: ${escHtml(err.message)}</span>`;
+  }
+
+  isStreaming = false;
+  document.getElementById('sendBtn').disabled = false;
+  loadHistory();
+  scrollMessages();
+}
+
+// ── Message rendering ─────────────────────────────────────
+function appendUserMsg(text) {
+  const panel = document.getElementById('messages');
+  const div   = document.createElement('div');
+  div.className = 'msg msg-user';
+  div.innerHTML = `<div class="msg-bubble">${escHtml(text)}</div>`;
+  panel.appendChild(div);
+  scrollMessages();
+}
+
+function appendAssistantPlaceholder(id) {
+  const panel = document.getElementById('messages');
+  const div   = document.createElement('div');
+  div.className = 'msg msg-assistant';
+  div.innerHTML = `
+    <div class="msg-bubble" id="${id}_bubble">
+      <div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>
+    <span class="msg-meta status-badge" id="${id}_status"></span>
+  `;
+  panel.appendChild(div);
+  scrollMessages();
+}
+
+function scrollMessages() {
+  const p = document.getElementById('messages');
+  if (p) p.scrollTop = p.scrollHeight;
+}
+
+function formatText(text) {
+  return escHtml(text)
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code style="font-family:var(--mono);font-size:12px;background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--accent2)">$1</code>')
+    .replace(/^#{1,3}\s(.+)$/gm, '<span style="font-weight:600;color:var(--accent2)">$1</span>')
+    .replace(/\n/g, '<br>');
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ── Viz panel ─────────────────────────────────────────────
+function setVizPanel(html) {
+  const body = document.getElementById('viz-panel-body');
+  if (!body) return;
+  
+  // Clear and set new HTML
+  body.innerHTML = html;
+  
+  // Force script execution by re-inserting scripts
+  const scripts = body.querySelectorAll('script');
+  scripts.forEach(oldScript => {
+    const newScript = document.createElement('script');
+    Array.from(oldScript.attributes).forEach(attr => {
+      newScript.setAttribute(attr.name, attr.value);
+    });
+    newScript.textContent = oldScript.textContent;
+    oldScript.parentNode.replaceChild(newScript, oldScript);
+  });
+  
+  console.log('Viz panel updated');
+}
+
+function resetVizPanel() {
+  const body = document.getElementById('viz-panel-body');
+  if (body) {
+    body.innerHTML = `
+      <div class="viz-empty">
+        <div class="viz-empty-icon">📊</div>
+        <div class="viz-empty-text">Visualizations will appear here when you ask about an ML concept</div>
+      </div>`;
+  }
+  const codeBtn = document.getElementById('viz-code-btn');
+  if (codeBtn) codeBtn.style.display = 'none';
+  const lastCode = document.getElementById('last-viz-code');
+  if (lastCode) lastCode.textContent = '';
+  vizCodeShown = false;
+}
+
+function toggleVizCode() {
+  const codeEl = document.getElementById('last-viz-code');
+  const body   = document.getElementById('viz-panel-body');
+  if (!codeEl || !body) return;
+  
+  if (!vizCodeShown) {
+    const code = codeEl.textContent;
+    const existingDetails = body.querySelector('.code-toggle');
+    if (existingDetails) existingDetails.remove();
+    
+    body.insertAdjacentHTML('beforeend', `
+      <details class="code-toggle" open style="margin-top:12px;">
+        <summary>📄 Plotly chart spec (JSON)</summary>
+        <pre style="font-family:monospace;font-size:11px;overflow-x:auto;">${escHtml(code)}</pre>
+      </details>`);
+    vizCodeShown = true;
+    const codeBtn = document.getElementById('viz-code-btn');
+    if (codeBtn) codeBtn.textContent = 'Hide code';
+  } else {
+    const details = body.querySelector('.code-toggle');
+    if (details) details.remove();
+    vizCodeShown = false;
+    const codeBtn = document.getElementById('viz-code-btn');
+    if (codeBtn) codeBtn.textContent = 'View code';
+  }
+}
+
+// ── Quiz ──────────────────────────────────────────────────
+async function openQuiz() {
+  const topic = currentTopic || 'machine learning';
+  document.getElementById('quiz-sub').textContent = `Testing your knowledge on: ${topic}`;
+  document.getElementById('quiz-loading').style.display = '';
+  document.getElementById('quiz-body').style.display = 'none';
+  document.getElementById('quiz-score').style.display = 'none';
+  document.getElementById('quiz-submit').style.display = 'none';
+  document.getElementById('quiz-overlay').style.display = '';
+  quizAnswers = {};
+
+  try {
+    const res  = await fetch('/api/quiz', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({topic, mode: currentMode})
+    });
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error);
+    quizData = data.quiz;
+    renderQuiz(quizData);
+  } catch(e) {
+    document.getElementById('quiz-loading').textContent = 'Failed to generate quiz: ' + e.message;
+  }
+}
+
+function renderQuiz(quiz) {
+  const body = document.getElementById('quiz-body');
+  if (!body) return;
+  
+  body.innerHTML = quiz.questions.map((q, qi) => `
+    <div class="q-block" id="q_${qi}">
+      <div class="q-text">${qi + 1}. ${escHtml(q.question)}</div>
+      <div class="q-options">
+        ${q.options.map((opt, oi) => `
+          <button class="q-opt" onclick="selectAnswer(${qi},${oi},this)">${escHtml(opt)}</button>
+        `).join('')}
+      </div>
+      <div class="q-explanation" id="exp_${qi}">${escHtml(q.explanation)}</div>
+    </div>
+  `).join('');
+
+  const loading = document.getElementById('quiz-loading');
+  if (loading) loading.style.display = 'none';
+  body.style.display = '';
+  const submitBtn = document.getElementById('quiz-submit');
+  if (submitBtn) submitBtn.style.display = '';
+}
+
+function selectAnswer(qi, oi, btn) {
+  const opts = btn.closest('.q-options').querySelectorAll('.q-opt');
+  opts.forEach(b => {
+    b.style.borderColor = '';
+    b.style.color = '';
+  });
+  quizAnswers[qi] = oi;
+  btn.style.borderColor = 'var(--accent)';
+  btn.style.color = 'var(--accent)';
+}
+
+function submitQuiz() {
+  if (!quizData) return;
+  const questions = quizData.questions;
+  let score = 0;
+
+  questions.forEach((q, qi) => {
+    const selected = quizAnswers[qi];
+    const block    = document.getElementById(`q_${qi}`);
+    if (!block) return;
+    const opts     = block.querySelectorAll('.q-opt');
+    const expEl    = document.getElementById(`exp_${qi}`);
+
+    opts.forEach((btn, oi) => {
+      btn.disabled = true;
+      if (oi === q.correct) btn.classList.add('correct');
+      else if (oi === selected && oi !== q.correct) btn.classList.add('wrong');
+    });
+
+    if (expEl) expEl.style.display = 'block';
+    if (selected === q.correct) score++;
+  });
+
+  const scoreNum = document.getElementById('score-num');
+  if (scoreNum) scoreNum.textContent = `${score} / ${questions.length}`;
+  const pct = Math.round(score / questions.length * 100);
+  const scoreMsg = document.getElementById('score-msg');
+  if (scoreMsg) {
+    scoreMsg.textContent = pct === 100 ? '🎉 Perfect score!' :
+      pct >= 75   ? '👏 Great job!' :
+      pct >= 50   ? '📚 Keep studying!' : '💡 Review the concept and try again!';
+  }
+  const scoreDiv = document.getElementById('quiz-score');
+  if (scoreDiv) scoreDiv.style.display = '';
+  const submitBtn = document.getElementById('quiz-submit');
+  if (submitBtn) submitBtn.style.display = 'none';
+}
+
+function closeQuiz() {
+  document.getElementById('quiz-overlay').style.display = 'none';
+}
+
+// ── History ───────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const res  = await fetch('/api/history');
+    const data = await res.json();
+    const nav  = document.getElementById('history-nav');
+
+    if (!nav) return;
+    
+    if (!data.history?.length) {
+      nav.innerHTML = '<div style="padding:8px 16px;font-size:12px;color:var(--muted)">None yet</div>';
+      return;
+    }
+
+    nav.innerHTML = data.history.slice(-8).reverse().map(item => `
+      <div class="nav-item" onclick="askConcept('${item.query.replace(/'/g, "\\'")}', '${item.query.substring(0,30).replace(/'/g, "\\'")}')">
+        <span class="nav-item-icon">${item.has_viz ? '📊' : '💬'}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(item.query.substring(0,32))}…</span>
+      </div>
+    `).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function clearHistory() {
+  await fetch('/api/clear_history', {method:'POST'});
+  loadHistory();
+  showToast('History cleared');
+}
+
+async function clearCache() {
+  await fetch('/api/cache/clear', {method:'POST'});
+  showToast('Visualization cache cleared');
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function autoResize(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.min(120, el.scrollHeight) + 'px';
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+</script>
+</body>
+</html>

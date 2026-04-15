@@ -1,0 +1,1 @@
+Supervised learning is a type of machine learning where a model learns from labelled data, meaning each input has a correct output. The model compares its predictions with actual results and improves over time to increase accuracy.
